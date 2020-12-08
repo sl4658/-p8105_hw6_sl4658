@@ -13,7 +13,7 @@ library(p8105.datasets)
 
 ## Problem 1
 Create a city_state variable and a binary variable indicating whether the homicide is solved.
-```{r}
+```{r, message=FALSE}
 homicide_df = 
   read_csv("./data/homicide-data.csv", na = c("", "NA", "Unknown")) %>% 
   mutate(
@@ -92,4 +92,10 @@ models_results_df %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-As shown in the plot, the estimated OR of solving homicides comparing for 
+As shown in the plot, the estimated ORs of solving homicides comparing Black victims to White victims for most cities were relatively close and were smaller than 1, except that Fresno, CA and Stockton, CA had slightly higher ORs (between 1 and 1.5), and Albuquerque, NM had the highest OR (between 1.5 and 2). These three cities also had the largest range of confidence interval, indicating greater uncertainty. 
+
+We can conclude that the odds of solving homicides with Black victims was smaller than the odds of solving homicides with White victims in most cities in the U.S..
+
+
+
+
