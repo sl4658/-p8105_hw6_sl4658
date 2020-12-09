@@ -196,7 +196,114 @@ According to the plot, the RMSE value for proposed model is the highest, followe
 
 
 
+## Problem 3
+Download data for problem 3
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+
+head(weather_df)
+```
+
+
+Produce estimates of two quantities (r square, and log(b0*b1)) for each bootstrap sample
+```{r}
+boot_straps = 
+  weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    results_rsq = map(models, broom::glance),
+    results_log = map(models, broom::tidy)
+  ) %>%
+  janitor::clean_names()
+
+# Estimates of R-squared
+rsq_df = 
+  boot_straps %>% 
+  select(-strap, -models) %>% 
+  unnest(results_rsq) %>% 
+  janitor::clean_names() %>% 
+  select(id, r_squared)
+
+# Estimates of log(b0*b1)
+log_df = 
+  boot_straps %>% 
+  select(-strap, -models) %>% 
+  unnest(results_log) %>% 
+  select(id, term, estimate) %>%
+  pivot_wider(
+    names_from = term,
+    values_from = estimate
+  ) %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    log_b0_b1 = log(intercept*tmin)
+  )
+```
+
+
+Plot the distribution of two estimates and describe in words. 
+```{r}
+# Distribution plot of R-squared
+rsq_dist = 
+  rsq_df %>% 
+  ggplot(aes(x = r_squared)) + 
+  geom_density() +
+  labs(
+    title = "Distribution of R-squared",
+    x = "R-squared",
+    y = "Density"
+  )
+
+rsq_dist
+
+# Distribution plot of log(b0*b1)
+log_dist = 
+  log_df %>% 
+  ggplot(aes(x = log_b0_b1)) + 
+  geom_density() +
+  labs(
+    title = "Distribution of log(b0*b1)",
+    x = "log(b0*b1)",
+    y = "Density"
+  )
+
+log_dist
+```
+
+As shown in the R-squared distribution plot, the curve is relatively symmetric, with a peak around R-squared of 0.913. As shown in the log(b0 times b1) distribution plot, the curve is slightly left-skewed, with a peak around log(b0 times b1) of 2.02.
 
 
 
+Identify the 2.5% and 97.5% quantiles to provide a 95% confidence interval for R-squared and log(b0*b1)
+```{r}
+# For the R-squared
+rsq_df %>%
+  summarize(
+    rsq_ci_lower = quantile(r_squared, 0.025), 
+    rsq_ci_upper = quantile(r_squared, 0.975)
+    ) %>% 
+  knitr::kable(digit = 3)
 
+# For the log(b0*b1)
+log_df %>%
+  summarize(
+    log_ci_lower = quantile(log_b0_b1, 0.025), 
+    log_ci_upper = quantile(log_b0_b1, 0.975)
+    ) %>% 
+  knitr::kable(digit = 3)
+```
+
+The 2.5% and 97.5% quantiles for R-squared are 0.894 and 0.927; the 95% confidence interval for R-squared is (0.894, 0.927). 
+
+The 2.5% and 97.5% quantiles for log(b0 times b1) are 1.965 and 2.059; the 95% confidence interval for log(b0 times b1) is (1.965, 2.059).
